@@ -36,6 +36,11 @@
 -- commentaar in de uitwerking.
 
 
+ALTER TABLE medewerkers
+    ADD geslacht char(1)
+        constraint m_geslacht_chk check (geslacht = 'M' or geslacht = 'V');
+
+
 -- S1.2. Nieuwe afdeling
 --
 -- Het bedrijf krijgt een nieuwe onderzoeksafdeling 'ONDERZOEK' in Zwolle.
@@ -43,6 +48,16 @@
 -- nieuwe medewerker A DONK aangenomen. Hij krijgt medewerkersnummer 8000
 -- en valt direct onder de directeur.
 -- Voeg de nieuwe afdeling en de nieuwe medewerker toe aan de database.
+
+insert into  medewerkers(mnr,naam, voorl,functie, chef, gbdatum, maandsal, comm, afd, geslacht)
+values (8000,'Donk', 'A', 'MANAGER',7839,'1970-05-02',3000,null,null, 'M');
+
+insert into  afdelingen (anr,naam, locatie, hoofd)
+values (50,'ONDERZOEK', 'ZWOLLE', 8000);
+
+UPDATE medewerkers
+SET afd = 50
+WHERE mnr= 8000;
 
 
 -- S1.3. Verbetering op afdelingentabel
@@ -54,6 +69,20 @@
 --      de nieuwe sequence.
 --   c) Op enig moment gaat het mis. De betreffende kolommen zijn te klein voor
 --      nummers van 3 cijfers. Los dit probleem op.
+create sequence  afdeling_nummering_afdelingnummers_seq
+increment 10
+start 50
+minvalue 10
+maxvalue 1000
+cache 1;
+
+alter table  afdelingen
+alter column anr  set default nextval('afdeling_nummering_afdelingnummers_seq');
+
+
+insert into afdelingen (naam, locatie, hoofd)
+values ('TESTEN','ZWOLLE', 8000);
+
 
 
 -- S1.4. Adressen
@@ -63,11 +92,29 @@
 -- kolommen. Voeg minimaal één rij met adresgegevens van A DONK toe.
 --
 --    postcode      PK, bestaande uit 6 karakters (4 cijfers en 2 letters)
---    huisnummer    PK
---    ingangsdatum  PK
---    einddatum     moet na de ingangsdatum liggen
---    telefoon      10 cijfers, uniek
+--    huisnummer    PK .
+--    ingangsdatum  PK.
+--    einddatum     moet na de ingangsdatum liggen .
+--    telefoon      10 cijfers, uniek.
 --    med_mnr       FK, verplicht
+create table adressen(
+                         postcode varchar CHECK (postcode ~ '^[0-9][0-9][0-9][0-9][A-Z][A-Z].*$'),
+                         huisnummer varchar(6),
+                         ingangsdatum date,
+                         einddatum date check ( einddatum > adressen.ingangsdatum ),
+                         telefoon char(10) UNIQUE check (adressen.telefoon ~ '^[0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9][0-9].*$') ,
+                         mnr int  not null ,
+                         CONSTRAINT 	adres_mnr_fk   foreign key(mnr)
+                             REFERENCES public.medewerkers (mnr),
+                         constraint  adres_pk primary key(ingangsdatum, postcode,huisnummer)
+);
+
+insert into adressen (postcode, huisnummer, ingangsdatum, einddatum, telefoon, mnr)
+values ( '2312AX', 5449, '2022-09-14','2022-12-31','0629485330', 8000);
+
+
+
+
 
 
 -- S1.5. Commissie
@@ -76,11 +123,16 @@
 -- 'VERKOPER' heeft, anders moet de commissie NULL zijn. Schrijf hiervoor een beperkingsregel. Gebruik onderstaande
 -- 'illegale' INSERTs om je beperkingsregel te controleren.
 
-INSERT INTO medewerkers (mnr, naam, voorl, functie, chef, gbdatum, maandsal, comm)
-VALUES (8001, 'MULLER', 'TJ', 'TRAINER', 7566, '1982-08-18', 2000, 500);
+--alter table  medewerkers alter  column  comm
+alter table medewerkers add
+    constraint m_comm_ check ( comm is not null and functie= 'VERKOPER' or comm = NULL  and functie != 'VERKOPER' );
+
 
 INSERT INTO medewerkers (mnr, naam, voorl, functie, chef, gbdatum, maandsal, comm)
-VALUES (8002, 'JANSEN', 'M', 'VERKOPER', 7698, '1981-07-17', 1000, NULL);
+VALUES (8003, 'MULLER', 'TJ', 'TRAINER', 7566, '1982-08-18', 2000, 500);
+
+INSERT INTO medewerkers (mnr, naam, voorl, functie, chef, gbdatum, maandsal, comm)
+VALUES (8004, 'JANSEN', 'M', 'VERKOPER', 7698, '1981-07-17', 1000, NULL);
 
 
 
