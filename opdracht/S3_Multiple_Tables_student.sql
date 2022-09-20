@@ -26,38 +26,85 @@
 -- ------------------------------------------------------------------------
 
 
+-- ------------------------------------------------------------------------
+-- Data & Persistency
+-- Opdracht S3: Multiple Tables
+--
+-- (c) 2020 Hogeschool Utrecht
+-- Tijmen Muller (tijmen.muller@hu.nl)
+-- André Donk (andre.donk@hu.nl)
+--
+--
+-- Opdracht: schrijf SQL-queries om onderstaande resultaten op te vragen,
+-- aan te maken, verwijderen of aan te passen in de database van de
+-- bedrijfscasus.
+--
+-- Codeer je uitwerking onder de regel 'DROP VIEW ...' (bij een SELECT)
+-- of boven de regel 'ON CONFLICT DO NOTHING;' (bij een INSERT)
+-- Je kunt deze eigen query selecteren en los uitvoeren, en wijzigen tot
+-- je tevreden bent.
+--
+-- Vervolgens kun je je uitwerkingen testen door de testregels
+-- (met [TEST] erachter) te activeren (haal hiervoor de commentaartekens
+-- weg) en vervolgens het hele bestand uit te voeren. Hiervoor moet je de
+-- testsuite in de database hebben geladen (bedrijf_postgresql_test.sql).
+-- NB: niet alle opdrachten hebben testregels.
+--
+-- Lever je werk pas in op Canvas als alle tests slagen.
+-- ------------------------------------------------------------------------
 -- S3.1.
 -- Produceer een overzicht van alle cursusuitvoeringen; geef de
 -- code, de begindatum, de lengte en de naam van de docent.
--- DROP VIEW IF EXISTS s3_1; CREATE OR REPLACE VIEW s3_1 AS                                                     -- [TEST]
+DROP VIEW IF EXISTS s3_1; CREATE OR REPLACE VIEW s3_1 AS
+select uitvoeringen.cursus as code,uitvoeringen.begindatum, cursussen.lengte ,medewerkers.naam
+from uitvoeringen
+         INNER join medewerkers ON medewerkers.mnr = uitvoeringen.docent
+         INNER join cursussen on cursussen.code = uitvoeringen.cursus;--[TEST]
 
 
--- S3.2.
+-- S3.2.   niet helemaal goed
 -- Geef in twee kolommen naast elkaar de achternaam van elke cursist (`cursist`)
 -- van alle S02-cursussen, met de achternaam van zijn cursusdocent (`docent`).
--- DROP VIEW IF EXISTS s3_2; CREATE OR REPLACE VIEW s3_2 AS                                                     -- [TEST]
+DROP VIEW IF EXISTS s3_2; CREATE OR REPLACE VIEW s3_2 AS
+select medewerker_docent.naam  as docent, medewerker_cursist.naam as cursist from uitvoeringen
+                                                                                      inner join medewerkers as medewerker_docent  ON medewerker_docent.mnr  = uitvoeringen.docent
+                                                                                      inner join inschrijvingen ON inschrijvingen.cursus =  uitvoeringen.cursus
+                                                                                      inner join  medewerkers as medewerker_cursist on medewerker_cursist.mnr = inschrijvingen.cursist
+where uitvoeringen.cursus = 'S02';-- [TEST]
 
-
+-- ik krijg de data die ik nodig heb + de goede aantal rijen
 -- S3.3.
 -- Geef elke afdeling (`afdeling`) met de naam van het hoofd van die
 -- afdeling (`hoofd`).
--- DROP VIEW IF EXISTS s3_3; CREATE OR REPLACE VIEW s3_3 AS                                                     -- [TEST]
+DROP VIEW IF EXISTS s3_3; CREATE OR REPLACE VIEW s3_3 AS
+select afdelingen.naam as afdeling , medewerkers.naam afdelingshoofd  from afdelingen
+                                                                               inner join medewerkers on medewerkers.mnr= afdelingen.hoofd; -- [TEST]
 
 
--- S3.4.
+-- S3.4. aantal medewerkers kloppen
 -- Geef de namen van alle medewerkers, de naam van hun afdeling (`afdeling`)
 -- en de bijbehorende locatie.
--- DROP VIEW IF EXISTS s3_4; CREATE OR REPLACE VIEW s3_4 AS                                                     -- [TEST]
+DROP VIEW IF EXISTS s3_4; CREATE OR REPLACE VIEW s3_4 AS
+select medewerkers.naam , afdelingen.naam as  afdeling, afdelingen.locatie   from medewerkers
+                                                                                      inner join afdelingen on medewerkers.afd= afdelingen.anr
+order by medewerkers.naam; -- [TEST]
 
 
 -- S3.5.
 -- Geef de namen van alle cursisten die staan ingeschreven voor de cursus S02 van 12 april 2019
--- DROP VIEW IF EXISTS s3_5; CREATE OR REPLACE VIEW s3_5 AS                                                     -- [TEST]
+DROP VIEW IF EXISTS s3_5; CREATE OR REPLACE VIEW s3_5 AS
+select  medewerkers.naam as curist from inschrijvingen
+                                            inner join medewerkers on medewerkers.mnr = inschrijvingen.cursist
+where inschrijvingen.cursus= 'S02' and  inschrijvingen.begindatum ='2019-04-12';-- [TEST]
 
 
 -- S3.6.
 -- Geef de namen van alle medewerkers en hun toelage.
--- DROP VIEW IF EXISTS s3_6; CREATE OR REPLACE VIEW s3_6 AS                                                     -- [TEST]
+DROP VIEW IF EXISTS s3_6; CREATE OR REPLACE VIEW s3_6 AS
+select medewerkers.naam, schalen.toelage from medewerkers
+                                                  inner join schalen on schalen.ondergrens <= medewerkers.maandsal
+    and  schalen.bovengrens >= medewerkers.maandsal ;
+-- [TEST]
 
 
 
@@ -77,4 +124,5 @@ SELECT * FROM test_select('S3.5') AS resultaat
 UNION
 SELECT * FROM test_select('S3.6') AS resultaat
 ORDER BY resultaat;
+
 
