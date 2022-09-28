@@ -37,7 +37,7 @@ INNER join medewerkers ON medewerkers.mnr = uitvoeringen.docent
 INNER join cursussen on cursussen.code = uitvoeringen.cursus;--[TEST]
 
 
--- S3.2.   niet helemaal goed
+-- S3.2.  
 -- Geef in twee kolommen naast elkaar de achternaam van elke cursist (`cursist`)
 -- van alle S02-cursussen, met de achternaam van zijn cursusdocent (`docent`).
 DROP VIEW IF EXISTS s3_2; CREATE OR REPLACE VIEW s3_2 AS
