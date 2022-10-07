@@ -60,7 +60,7 @@ Create OR REPLACE VIEW dagcursussen AS
 CREATE OR REPLACE VIEW daguitvoeringen AS
     SELECT uitvoeringen.cursus, uitvoeringen.begindatum, uitvoeringen.docent, uitvoeringen.locatie
     FROM uitvoeringen
-    INNER JOIN dagcursussen on dagcursussen.code = uitvoeringen.cursus
+    INNER JOIN dagcursussen ON dagcursussen.code = uitvoeringen.cursus
     ORDER BY uitvoeringen.begindatum
 
 SELECT * FROM dagcursussen
