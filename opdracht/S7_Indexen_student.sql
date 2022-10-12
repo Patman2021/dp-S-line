@@ -9,7 +9,6 @@
 -- LET OP, zoals in de opdracht op Canvas ook gezegd kun je informatie over
 -- het query plan vinden op: https://www.postgresql.org/docs/current/using-explain.html
 
-
 -- S7.1.
 --
 -- Je maakt alle opdrachten in de 'sales' database die je hebt aangemaakt en gevuld met
@@ -26,6 +25,26 @@
 -- 4. Verklaar de verschillen. Schrijf deze hieronder op.
 
 
+    --Eerste explain
+    --"Gather  (cost=1000.00..6151.37 rows=1001 width=96)"
+    --"  Workers Planned: 2"
+    --"  ->  Parallel Seq Scan on order_lines  (cost=0.00..5051.27 rows=417 width=96)"
+    --"        Filter: (stock_item_id = 9)"
+
+    -- Tweede explain
+    --"Bitmap Heap Scan on order_lines  (cost=12.05..2292.81 rows=1001 width=96)"
+    --"  Recheck Cond: (stock_item_id = 9)"
+    --"  ->  Bitmap Index Scan on ord_lines_si_id_idx  (cost=0.00..11.80 rows=1001 width=0)"
+    --"        Index Cond: (stock_item_id = 9)"
+
+    -- Omdat de Index gesorteerd staat in een aparte tabel   kan er een binary search gedaan worden, hierdoor gaat het zoeken vele male sneller
+    --en kan in dit geval de  id snel gevonden worden en de data uit de normale tabel gehaald worden.
+    -- De zonder index search moet door alle data heel lopen om het op te zoeken, omdat het niet gesorteerd staat
+    CREATE INDEX ord_lines_si_id_idx ON order_lines (stock_item_id);
+
+    EXPLAIN SELECT * FROM order_lines WHERE stock_item_id = 9;
+    EXPLAIN SELECT * FROM ord_lines_si_id_idx WHERE stock_item_id = 9;
+
 -- S7.2.
 --
 -- 1. Maak de volgende twee query’s:
@@ -36,6 +55,33 @@
 -- 4. Voeg een index toe, waarmee query B versneld kan worden
 -- 5. Analyseer met EXPLAIN en kopieer het explain plan onder de opdracht
 -- 6. Verklaar de verschillen en schrijf hieronder op
+
+    EXPLAIN  SELECT  FROM orders WHERE order_id= 73590
+
+    --"Index Scan using pk_sales_orders on orders  (cost=0.29..8.31 rows=1 width=155)"
+       -- "  Index Cond: (order_id = 73590)"
+
+    EXPLAIN  SELECT * FROM orders WHERE customer_id= 1028
+
+    --"Seq Scan on orders  (cost=0.00..1819.94 rows=105 width=155)"
+        --"  Filter: (customer_id = 1028)"
+
+    --3: order_id is een primary key en hierdoor is er automatisch een index gemaakt en kon er een binary search op gezet worden in de index tabel.
+
+    --4:
+    CREATE INDEX orders_customer_id_index
+    ON orders (customer_id )
+        --
+        -- 5.Na een index toevegen op customer_id:
+        --"Bitmap Heap Scan on orders  (cost=5.11..306.42 rows=105 width=155)"
+          --  "  Recheck Cond: (customer_id = 1028)"
+        --"  ->  Bitmap Index Scan on orders_customer_id_index  (cost=0.00..5.08 rows=105 width=0)"
+        --"        Index Cond: (customer_id = 1028)"
+
+        -- 6.Er zijn wat extra lijnen bijgekomen die je krijgt als je zelf een index aanmaakt.
+        -- je ziet dat de cost  bij  na de index veel sneller is [(cost=0.00..5.08 rows=105 width=0)" en voorheen
+        -- --(cost=0.00..1819.94 rows=105 width=155)"  ] Je ziet ook twee keer een "scan on onders" dit komt omdat
+        -- we de data eerst uit de index tabel moeten halen en daarna  met de customer_id alle data ophalen  in de normale tabel
 
 
 -- S7.3.A
@@ -78,10 +124,47 @@ ORDER BY vertraging DESC, salesperson_person_id
 -- 3. Maak de index(en) aan en run nogmaals het EXPLAIN plan (kopieer weer onder de opdracht) 
 -- 4. Wat voor verschillen zie je? Verklaar hieronder.
 
+    --1:    "Sort  (cost=1599532.63..1599533.35 rows=285 width=20)"
+    --"  Sort Key: ((o.expected_delivery_date - o.order_date)) DESC, o.salesperson_person_id"
+    --"  ->  Nested Loop  (cost=0.29..1599521.01 rows=285 width=20)"
+    --"        ->  Seq Scan on order_lines ol  (cost=0.00..6738.65 rows=856 width=8)"
+    --"              Filter: (picked_quantity > 250)"
+    --"        ->  Index Scan using pk_sales_orders on orders o  (cost=0.29..1860.73 rows=1 width=16)"
+    --"              Index Cond: (order_id = ol.order_id)"
+    --"              Filter: ((SubPlan 1) > 1.45)"
+    --"              SubPlan 1"
+    --"                ->  Aggregate  (cost=1856.74..1856.75 rows=1 width=32)"
+    --"                      ->  Seq Scan on orders o2  (cost=0.00..1819.94 rows=7360 width=8)"
+    --"                            Filter: (salesperson_person_id = o.salesperson_person_id)"
+
+    --3:
+    CREATE INDEX orders_salesperson_id_index
+        ON orders (salesperson_person_id)
+
+    --        "Sort  (cost=963862.69..963863.41 rows=285 width=20)"
+    --"  Sort Key: ((o.expected_delivery_date - o.order_date)) DESC, o.salesperson_person_id"
+    --"  ->  Nested Loop  (cost=0.29..963851.07 rows=285 width=20)"
+    --"        ->  Seq Scan on order_lines ol  (cost=0.00..6738.65 rows=856 width=8)"
+    --"              Filter: (picked_quantity > 250)"
+    --"        ->  Index Scan using pk_sales_orders on orders o  (cost=0.29..1118.12 rows=1 width=16)"
+    --"              Index Cond: (order_id = ol.order_id)"
+    --"              Filter: ((SubPlan 1) > 1.45)"
+    --"              SubPlan 1"
+    --"                ->  Aggregate  (cost=1114.13..1114.14 rows=1 width=32)"
+    ---"                      ->  Bitmap Heap Scan on orders o2  (cost=85.33..1077.33 rows=7360 width=8)"
+    --"                            Recheck Cond: (salesperson_person_id = o.salesperson_person_id)"
+    --"                            ->  Bitmap Index Scan on orders_salesperson_id_index  (cost=0.00..83.49 rows=7360 width=0)"
+    --"                                  Index Cond: (salesperson_person_id = o.salesperson_person_id)"
+
+    --4: Door deze eene index toe te voegen  ging de query complete tijd van 6.978 seconden naar 2.009,
+    --hierdoor is het opzoeken ruim 3 keer zo snel.
+
 
 
 -- S7.3.C
 --
 -- Zou je de query ook heel anders kunnen schrijven om hem te versnellen?
+   -- Ik probeerde de code zelf net wat anders op te zetten, maar helaas was het verschil super klein.
+    -- Het zelfde kreeg ik toen ik meer indexen en met views ging werken, het verschil was zo klein dat ik het persoonlijk geen versnelling vondt
 
 
