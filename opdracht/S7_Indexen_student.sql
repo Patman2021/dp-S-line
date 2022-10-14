@@ -173,7 +173,7 @@ FROM orders o
 
          JOIN order_lines ol on o.order_id= ol.order_id
 WHERE (SELECT AVG(expected_delivery_date - order_date)
-       FROM orders o2
+       FROM orders
        WHERE salesperson_person_id = o.salesperson_person_id)
 
     > 1.45
