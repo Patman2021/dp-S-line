@@ -164,7 +164,21 @@ ORDER BY vertraging DESC, salesperson_person_id
 -- S7.3.C
 --
 -- Zou je de query ook heel anders kunnen schrijven om hem te versnellen?
-   -- Ik probeerde de code zelf net wat anders op te zetten, maar helaas was het verschil super klein.
-    -- Het zelfde kreeg ik toen ik meer indexen en met views ging werken, het verschil was zo klein dat ik het persoonlijk geen versnelling vondt
+   -- in de subqueary werd verwezen naar een alias, toen alias weggehaald had was deze  0,3 seconden  sneller. Toen ik nog extra views ging
+   -- toevoegen werd het zelfs slommer.
+
+SELECT o.order_id , o.order_date , salesperson_person_id as verkoper,
+       expected_delivery_date - order_date as vertraging, picked_quantity
+FROM orders o
+
+         JOIN order_lines ol on o.order_id= ol.order_id
+WHERE (SELECT AVG(o2.expected_delivery_date - o2.order_date)
+       FROM orders o2
+       WHERE salesperson_person_id = o.salesperson_person_id)
+
+    > 1.45
+
+  AND ol.picked_quantity > 250
+ORDER BY vertraging DESC, salesperson_person_id
 
 

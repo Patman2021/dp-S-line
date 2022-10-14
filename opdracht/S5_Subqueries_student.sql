@@ -34,7 +34,7 @@
 -- gevolgd? Geef hun personeelsnummers.
 DROP VIEW IF EXISTS s5_1; CREATE OR REPLACE VIEW s5_1 AS
 SELECT cursist as personeelsnummers FROM inschrijvingen WHERE cursus= 'JAV'
-AND cursist in   (SELECT cursist as personeelsnummers FROM inschrijvingen WHERE cursus= 'XML') ;
+AND cursist in   (SELECT cursist  FROM inschrijvingen WHERE cursus= 'XML') ;
 -- [TEST]
 
 
