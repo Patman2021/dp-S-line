@@ -172,7 +172,7 @@ SELECT o.order_id , o.order_date , salesperson_person_id as verkoper,
 FROM orders o
 
          JOIN order_lines ol on o.order_id= ol.order_id
-WHERE (SELECT AVG(o2.expected_delivery_date - o2.order_date)
+WHERE (SELECT AVG(expected_delivery_date - order_date)
        FROM orders o2
        WHERE salesperson_person_id = o.salesperson_person_id)
 
@@ -180,5 +180,4 @@ WHERE (SELECT AVG(o2.expected_delivery_date - o2.order_date)
 
   AND ol.picked_quantity > 250
 ORDER BY vertraging DESC, salesperson_person_id
-
 
